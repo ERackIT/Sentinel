@@ -1,0 +1,8 @@
+// Emails that include predefined post-delivery actions or automatic rules, by sender and subject.  
+let recipient = example@microsoft.com; 
+let subject = "<insert email subject>"; 
+
+EmailEvents 
+| where RecipientEmailAddress == recipient and Subject == subject 
+//| where RecipientEmailAddress contains "john.doe" and Subject == subject //**use when full email address is unknown
+| project Timestamp, Subject, SenderMailFromAddress, RecipientEmailAddress
