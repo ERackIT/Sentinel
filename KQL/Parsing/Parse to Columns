@@ -1,0 +1,32 @@
+//If you are struggling with parsing content out of a long syslog entry, this includes examples of how to parse into new columns.
+// This is ideal when you can use parameters to map parts of a syslog message into different columns
+
+Syslog 
+| where Facility contains "local4" 
+| parse  SyslogMessage with * "name\":\"" Name "\"" null 
+| parse  SyslogMessage with * "pid\":" PID "," null  
+| parse  SyslogMessage with * "phid\":" PHID "," null  
+| parse  SyslogMessage with * "uuid\":\"" UUID "\"" null  
+| parse  SyslogMessage with * "logic\":{" Logic "}" null  
+| parse  SyslogMessage with * "throttle\":" Throttle "," null  
+| parse  SyslogMessage with * "sharedEndpoints\":" SharedEndpoints "," null  
+| parse  SyslogMessage with * "actions\":{" Actions "e}," null  
+| parse  SyslogMessage with * "tags\":[\"" Tags "\"" null  
+| parse  SyslogMessage with * "interval\":" Interval "," null  
+| parse  SyslogMessage with * "delay\":" Delay "," null  
+| parse  SyslogMessage with * "sequenced\":" Sequenced "," null  
+| parse  SyslogMessage with * "active\":" Active "," null  
+| parse  SyslogMessage with * "description\":\"" Description "\"" null  
+| parse  SyslogMessage with * "behaviour\":\"" Behaviour "\"" null  
+| parse  SyslogMessage with * "version\":" Version "," null  
+| parse  SyslogMessage with * "priority\":" Priority "," null  
+| parse  SyslogMessage with * "category\":\"" Category "\"" null  
+| parse  SyslogMessage with * "compliance\":" Compliance "}" null 
+| parse  SyslogMessage with * "ip\":\"" IP "\"" null  
+| parse  SyslogMessage with * "typename\":\"" TypeName "\"" null  
+| parse  SyslogMessage with * "typelabel\":\"" TypeLabel "\"" null  
+| parse  SyslogMessage with * "tags\":[{" Tags_2 "]" null  
+| parse  SyslogMessage with * "triggeredComponents\":" TriggeredComponents  
+| parse  SyslogMessage with * "value\":\"" Argument "\"" null  
+| parse  SyslogMessage with * "hostname\":\"" HostName "\"" null  
+| distinct TimeGenerated, IP, HostName, Name, Description, Tags, Category, TypeName, TypeLabel, UUID, Actions, SyslogMessage 
