@@ -1,0 +1,11 @@
+#For seeing who added a user to a group#
+
+AuditLogs  
+| where Category contains "GroupManagement" 
+| where OperationName contains "Add member to group" 
+| extend UserArray = tostring(TargetResources[0]) 
+| parse UserArray with * "userPrincipalName\":\"" UserAdded "\"" null 
+| extend InitiatedBy.user.userPrincipalName 
+| project-rename InitiatedBy = InitiatedBy_user_userPrincipalName 
+| where TargetResources contains "groupname" 
+| project TimeGenerated, InitiatedBy, UserAdded
