@@ -1,0 +1,8 @@
+//Alerting on successful Microsoft sign ins outside of country
+
+SigninLogs 
+| where Location != "AU" //filtering out sign ins for country code
+| where Status !contains "fail"  //filtering out unsuccessful sign ins
+| extend Status.errorCode 
+| where  Status.errorCode == "0" 
+| project TimeGenerated, Status_errorCode, Identity, OperationName, Location, IPAddress 
