@@ -9,3 +9,12 @@ AuditLogs
 | project-rename InitiatedBy = InitiatedBy_user_userPrincipalName 
 | where TargetResources contains "groupname" 
 | project TimeGenerated, InitiatedBy, UserAdded
+
+OR
+
+AuditLogs 
+| where ActivityDisplayName == "Add member to group" 
+| where TargetResources contains "Group Name" 
+| parse InitiatedBy with * "userPrincipalName\":\"" UserInitiating "\"" null 
+| parse TargetResources with * "userPrincipalName\":\"" TargetUser "\"" null 
+| project TargetUser, UserInitiating
