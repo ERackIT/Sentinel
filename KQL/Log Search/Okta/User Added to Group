@@ -1,0 +1,8 @@
+//This is for a parsing fields out from the target_s column so you can generate alerts based on users being added to an Okta Group
+Okta_CL 
+| where target_s contains "group name" 
+| where displayMessage_s contains "add" 
+| parse target_s with * "alternateId\": \"" userAddedID "\"" null 
+| parse target_s with * "displayName\": \"" userAdded "\"" null 
+| parse target_s with * "displayName\": \"groupparameter" oktaGroup "\"" null 
+| project TimeGenerated, actor_alternateId_s, actor_displayName_s, displayMessage_s,  oktaGroup, userAdded, userAddedID 
