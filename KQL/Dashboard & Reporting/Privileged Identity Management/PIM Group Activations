@@ -1,5 +1,7 @@
 #Reporting on PIM activations
 //To generate a report of who has activated PIM groups
+// Includes justification, ticket system and ticket number
+//This also includes who approved it and their justification
 
 AuditLogs  
 | where Id contains "PIM" 
