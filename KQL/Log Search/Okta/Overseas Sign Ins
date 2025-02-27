@@ -1,0 +1,12 @@
+Okta_CL 
+| where displayMessage_s contains "User login to Okta" 
+| where client_geographicalContext_country_s != "Australia" 
+| where outcome_result_s contains "SUCCESS" 
+| extend Target = todynamic(target_s) 
+| extend App = Target[0] 
+| extend App1 = Target[1] 
+| extend App.displayName 
+| extend App1.displayName 
+| extend Application =strcat (App_displayName, " - ", App1_displayName) 
+| project TimeGenerated, actor_alternateId_s, domain_s, Application, client_geographicalContext_city_s, 
+client_geographicalContext_state_s, client_geographicalContext_country_s, outcome_result_s 
