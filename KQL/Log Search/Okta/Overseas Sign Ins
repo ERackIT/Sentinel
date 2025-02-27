@@ -1,3 +1,5 @@
+//Alerting on successful sign ins outside of country
+
 Okta_CL 
 | where displayMessage_s contains "User login to Okta" 
 | where client_geographicalContext_country_s != "Australia" 
