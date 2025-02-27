@@ -1,0 +1,4 @@
+WindowsEvent 
+| extend _Username=EventData.TargetUserName 
+| where EventID == 4740 and TimeGenerated > ago(1d) //account lockouts 
+ 
