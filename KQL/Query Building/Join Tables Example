@@ -1,0 +1,35 @@
+// This was for a dashboard that I was using to see pending PIM approvals 
+
+AuditLogs  
+| where Id contains "PIM" 
+| where OperationName contains "Add member to role completed" 
+| where Category contains "GroupManagement" 
+| extend Group = tostring(TargetResources[3]) 
+| parse Group with * "displayName\":\"" PIMGroup "\"" null 
+| where PIMGroup !contains "UserAdministrators" 
+| where PIMGroup !contains "WorkstationAdmin" 
+| where PIMGroup !contains "SecurityOperators" 
+| extend Justification = tostring(ResultDescription) 
+| extend StartTimeParse = tostring(AdditionalDetails[2]) 
+| extend ExpiryParse = tostring(AdditionalDetails[3]) 
+| extend TicketSystemParse = tostring(AdditionalDetails[4]) 
+| extend TicketNumberParse = tostring(AdditionalDetails[5]) 
+| parse StartTimeParse with * "value\":\"" StartTime "\"" null 
+| parse ExpiryParse with * "value\":\"" ExpirationTime "\"" null 
+| parse TicketSystemParse with * "value\":\"" TicketSystem "\"" null 
+| parse TicketNumberParse with * "value\":\"" TicketNumber "\"" null 
+| join kind= inner  
+( 
+AuditLogs 
+| where Id contains "PIM" 
+| where OperationName contains "Add member to role request approved" 
+| where Category contains "GroupManagement" 
+| extend Approver =tostring(Identity) 
+| extend ApprovalNote = tostring(ResultDescription) 
+| extend Group = tostring(TargetResources[4]) 
+| parse Group with * "displayName\":\"" PIMGroup "\"" null 
+| where PIMGroup !contains "UserAdministrators" 
+| where PIMGroup !contains "WorkstationAdmin" 
+| where PIMGroup !contains "SecurityOperators" 
+) on CorrelationId 
+| project TimeGenerated, Identity, Approver, PIMGroup, Justification, ApprovalNote, TicketSystem, TicketNumber, StartTime, ExpirationTime 
