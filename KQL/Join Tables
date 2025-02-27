@@ -1,0 +1,28 @@
+//This was for a dashboard to see pending PIM approvals
+
+AuditLogs  
+| where Id contains "PIM" 
+| where OperationName contains "Add member to role completed" 
+| where Category contains "GroupManagement" 
+| extend Group = tostring(TargetResources[3]) 
+| parse Group with * "displayName\":\"" PIMGroup "\"" null 
+| where PIMGroup !contains "UserAdministrators" //
+//| summarize arg_max(TimeGenerated,*) by UserId, 1stTime = TimeGenerated 
+| join kind= inner  
+( 
+AuditLogs 
+| where Id contains "PIM" 
+| where OperationName contains "Add member to role request approved" 
+| where Category contains "GroupManagement" 
+| extend Approver =tostring(Identity) 
+| extend Group = tostring(TargetResources[4]) 
+| parse Group with * "displayName\":\"" PIMGroup "\"" null 
+| where PIMGroup !contains "UserAdministrators" 
+  //  | summarize arg_max(TimeGenerated,*) by UserId, 2ndTime = TimeGenerated 
+) on CorrelationId 
+//| where datetime_diff('minute',2ndTime,1stTime) < 5 and 2ndTime > 1stTime 
+| project Identity, Approver, PIMGroup 
+
+ 
+
+ 
