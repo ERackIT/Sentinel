@@ -1,0 +1,10 @@
+//This was for the old Darktrace to Sentinel ingestion but is a useful reference if you need to assign a Sentinel severity score 
+// based an alternate parameters
+darktrace_model_alerts_CL  
+| where hostname_s !contains "SaaS" 
+| where SourceIP !contains "192.10" //add exclusions parameters as needed 
+| extend Score_toString  = tostring(score_d) 
+| parse Score_toString with Score ".0" null 
+| extend NewScore=replace_regex(Score, @'([0-49]+(\d+))', @"Low") 
+| extend NewScore=replace_regex(NewScore, @'([50-75]+(\d+))', @"Medium") 
+| extend NewScore=replace_regex(NewScore, @'([75-99]+(\d+))', @"High") 
