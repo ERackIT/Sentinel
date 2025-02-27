@@ -1,5 +1,6 @@
-//This was for the old Darktrace to Sentinel ingestion but is a useful reference if you need to assign a Sentinel severity score 
-// based an alternate parameters
+// Useful reference if you need to assign a Sentinel severity score based an alternate parameters
+// This was for the old Darktrace to Sentinel ingestion 
+
 darktrace_model_alerts_CL  
 | where hostname_s !contains "SaaS" 
 | where SourceIP !contains "192.10" //add exclusions parameters as needed 
