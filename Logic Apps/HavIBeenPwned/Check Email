@@ -1,0 +1,270 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "API_Variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "hibp-api-key",
+                            "type": "string",
+                            "value": "@{parameters('APIKey')}"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Asterisk_Variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Asterisk",
+                            "type": "string",
+                            "value": "@"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "API_Variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Email_Address_Variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "FullEmailAddress",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Asterisk_Variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Entities_-_Get_Accounts": {
+                "inputs": {
+                    "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/entities/account"
+                },
+                "runAfter": {
+                    "Query_Return": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "For_each": {
+                "actions": {
+                    "Append_to_string_variable_2": {
+                        "inputs": {
+                            "name": "Query Return",
+                            "value": "@outputs('HTTP')['statusCode']"
+                        },
+                        "runAfter": {
+                            "HTTP": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "AppendToStringVariable"
+                    },
+                    "Condition": {
+                        "actions": {
+                            "Add_comment_to_incident_(V3)": {
+                                "inputs": {
+                                    "body": {
+                                        "incidentArmId": "@triggerBody()?['object']?['id']",
+                                        "message": "<p>Congratulations! @{variables('FullEmailAddress')} was not found in the Pwned Database.</p>"
+                                    },
+                                    "host": {
+                                        "connection": {
+                                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                        }
+                                    },
+                                    "method": "post",
+                                    "path": "/Incidents/Comment"
+                                },
+                                "runAfter": {},
+                                "type": "ApiConnection"
+                            }
+                        },
+                        "else": {
+                            "actions": {
+                                "Add_comment_to_incident_(V3)_2": {
+                                    "inputs": {
+                                        "body": {
+                                            "incidentArmId": "@triggerBody()?['object']?['id']",
+                                            "message": "<p>@{variables('FullEmailAddress')} has been identifed as a compromised account by haveibeenpwned.</p>"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/Incidents/Comment"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@outputs('HTTP')['statusCode']",
+                                        404
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Append_to_string_variable_2": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "HTTP": {
+                        "inputs": {
+                            "headers": {
+                                "hibp-api-key": "@variables('hibp-api-key')"
+                            },
+                            "method": "GET",
+                            "uri": "https://haveibeenpwned.com/api/v3/breachedaccount/@{variables('FullEmailAddress')}"
+                        },
+                        "runAfter": {},
+                        "type": "Http"
+                    }
+                },
+                "foreach": "@body('Entities_-_Get_Accounts')?['Accounts']",
+                "runAfter": {
+                    "For_each_2": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "For_each_2": {
+                "actions": {
+                    "Append_to_string_variable_3": {
+                        "inputs": {
+                            "name": "FullEmailAddress",
+                            "value": "@body('Get_user')?['userPrincipalName']"
+                        },
+                        "runAfter": {
+                            "Get_user": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "AppendToStringVariable"
+                    },
+                    "Get_user": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['azuread']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/v1.0/users/@{encodeURIComponent(items('For_each_2')?['AadUserId'])}"
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                    }
+                },
+                "foreach": "@body('Entities_-_Get_Accounts')?['Accounts']",
+                "runAfter": {
+                    "Entities_-_Get_Accounts": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "Query_Return": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Query Return",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Email_Address_Variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            },
+            "APIKey": {
+                "defaultValue": "{API Key}",
+                "type": "String"
+            }
+        },
+        "triggers": {
+            "Microsoft_Sentinel_incident": {
+                "inputs": {
+                    "body": {
+                        "callback_url": "@{listCallbackUrl()}"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                        }
+                    },
+                    "path": "/incident-creation"
+                },
+                "type": "ApiConnectionWebhook"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "azuread": {
+                    "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/azuread-1",
+                    "connectionName": "{connection name}",
+                    "id": "/subscriptions/{subscriptionID}/providers/Microsoft.Web/locations/{location}/managedApis/azuread"
+                },
+                "azuresentinel": {
+                    "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/{logic app}",
+                    "connectionName": "{connection name}",
+                    "connectionProperties": {
+                        "authentication": {
+                            "type": "ManagedServiceIdentity"
+                        }
+                    },
+                    "id": "/subscriptions/{subscriptionID}/providers/Microsoft.Web/locations/{location}/managedApis/azuresentinel"
+                },
+                "azuresentinel_1": {
+                    "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/{connector-name}",
+                    "connectionName": "azuresentinel-5",
+                    "id": "/subscriptions/{subscriptionID}/providers/Microsoft.Web/locations/{location}/managedApis/azuresentinel"
+                }
+            }
+        }
+    }
+}
+
