@@ -1,5 +1,6 @@
-## Spur Custom Connector *IN PROGRESS*
-
+## Spur Custom Connector 
+*Instructions in progress ( Last updated: March 3,2025)*  
+  
 As of February 2025, there is no Spur connector in Azure Logic Apps, so creating your own Spur custom connector will give you better functionality to create multiple Spur logic apps.
 
 ## Instructions
