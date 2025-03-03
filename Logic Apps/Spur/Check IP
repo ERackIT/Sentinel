@@ -599,8 +599,8 @@
             "value": {
                 "Spur-CustomConnector": {
                     "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/{connector}",
-                    "connectionName": "Spur-CustomConnector",
-                    "id": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/customApis/Spur-CustomConnector"
+                    "connectionName": "{connector}",
+                    "id": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/customApis/{connector}"
                 },
                 "azuremonitorlogs_2": {
                     "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/azuremonitorlogs-4",
@@ -614,7 +614,7 @@
                 },
                 "azuresentinel": {
                     "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/{connector}",
-                    "connectionName": "azuresentinel-9",
+                    "connectionName": "{connector}",
                     "connectionProperties": {
                         "authentication": {
                             "type": "ManagedServiceIdentity"
