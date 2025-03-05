@@ -1,15 +1,18 @@
 {
 	"info": {
-		"_postman_id": "3d0f5d66-f382-49b9-8b03-3597949720a1",
+		"_postman_id": "0d9d3c09-877b-423d-bc54-c040dd280416",
 		"name": "spur",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "24611001"
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "42770166"
 	},
 	"item": [
 		{
-			"name": "Submit IP",
+			"name": "IP Context",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
 			"request": {
-				"method": "POST",
+				"method": "GET",
 				"header": [
 					{
 						"key": "Content-Type",
@@ -21,36 +24,17 @@
 					"mode": "raw",
 					"raw": "{\n    \"url\": \"https://www.microsoft.com\",\n    \"visibility\": \"public\",\n    \"tags\": [\"sjmtest\"]\n}"
 				},
-				"url": {
-					"raw": "https://spur.us/context/",
-					"protocol": "https",
-					"host": [
-						"spur",
-						"us"
-					],
-					"path": [
-						"context",
-						""
-					]
-				}
+				"url": "https://api.spur.us/v2/context/178.238.10.179"
 			},
 			"response": []
 		}
 	],
 	"auth": {
 		"type": "apikey",
-		"apikey": [
-			{
-				"key": "key",
-				"value": "Token",
-				"type": "string"
-			},
-			{
-				"key": "value",
-				"value": "{APIKey}",
-				"type": "string"
-			}
-		]
+		"apikey": {
+			"key": "Token",
+			"value": "{{API Key}}"
+		}
 	},
 	"event": [
 		{
@@ -78,4 +62,3 @@
 			"value": ""
 		}
 	]
-}
