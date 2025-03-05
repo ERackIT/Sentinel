@@ -1,5 +1,5 @@
-## Spur Custom Connector 
-*Instructions in progress ( Last updated: March 3,2025)*  
+## Creating a Spur Custom Connector for Azure Logic Apps
+*Instructions in progress ( Last updated: March 5,2025)*  
   
 As of February 2025, there is no Spur connector in Azure Logic Apps, so creating your own Spur custom connector will give you better functionality to create multiple Spur logic apps.
 
@@ -27,10 +27,22 @@ As of February 2025, there is no Spur connector in Azure Logic Apps, so creating
 2. In the top bar, select **Edit**  
  *Optional*: To import using a Postman collection, see [Postman | MS Learn](https://learn.microsoft.com/en-us/connectors/custom-connectors/define-postman-collection) and
 Sentinel/Logic Apps/Spur/spur.postman_collection.json
-4. Under **General information**  
-i. Upload a connector icon icon for Spur.  
-ii. Host: 'api.spur.us'  
-iii. Base URL: '/v2/context/'
-5. At the bottom right, select **Security**.
-6. Choose your authentication type as 'API Key'.
-
+3. Under **General information**  
+   i. *Upload a connector icon for Spur.*  
+   ii. **Host**: 'api.spur.us'  
+   iii. **Base URL**: '/v2/context/'  
+4. At the bottom right, select **Security**.  
+5. Select the drop down under Authentication type, and choose 'API Key'.
+   i. **Parameter label:** 'API Key'  
+   ii. **Paremeter name:** 'APIKey'  
+   iii. **Parameter location:** 'Header'  
+6. At the bottom right, select **Definition**. This page is where you create the actions that will be available in the Logic App. If you have imported the postman collection in Step 2, skip to step ????
+7. Under **General**  
+   i. **Summary:** 'Submit IP'  
+   ii. Description: 'Retrieves an IP Context Object by IPv4 or IPv6 Address. An IP Context Object summarizes all available information about the queried IP Address.'  
+   iii. Operation ID: 'SubmitIP'  
+   iv. Visibility: 'none'  
+8. Under **Request**, Select *'Import from sample'*.  
+    i. **Verb:** 'POST
+    ii. **URL:** 'https://spur.us/context/'
+    iii. **Headers:** 'use JSON from Sentinel/Logic Apps/Spur/IP Context Object Example.json'  
