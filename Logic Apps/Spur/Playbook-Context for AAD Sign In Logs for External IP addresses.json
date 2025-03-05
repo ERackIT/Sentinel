@@ -1,0 +1,627 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "API_Variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Spur-api-key",
+                            "type": "string",
+                            "value": "@parameters('APIKey')"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Account_Variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Account",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Add_comment_to_incident_(V3)": {
+                "inputs": {
+                    "body": {
+                        "incidentArmId": "@triggerBody()?['object']?['id']",
+                        "message": "<p><strong><br>\nSPUR Context<br>\n</strong><strong>@{outputs('Compose')}</strong><strong><br>\n</strong></p>"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/Incidents/Comment"
+                },
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "Compose": {
+                "inputs": "@body('Create_HTML_table')",
+                "runAfter": {
+                    "Create_HTML_table": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Compose"
+            },
+            "Condition": {
+                "actions": {},
+                "else": {
+                    "actions": {
+                        "Add_comment_to_incident_(V3)_2": {
+                            "inputs": {
+                                "body": {
+                                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                                    "message": "<p>Unable to scan IPs fom sign in logs</p>"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/Incidents/Comment"
+                            },
+                            "runAfter": {},
+                            "type": "ApiConnection"
+                        },
+                        "Terminate": {
+                            "inputs": {
+                                "runStatus": "Failed"
+                            },
+                            "runAfter": {
+                                "Add_comment_to_incident_(V3)_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Terminate"
+                        }
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "not": {
+                                "equals": [
+                                    "@variables('Account')",
+                                    ""
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "For_each": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Create_HTML_table": {
+                "inputs": {
+                    "format": "HTML",
+                    "from": "@variables('IPresults')"
+                },
+                "runAfter": {
+                    "For_each_2": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Table"
+            },
+            "Entities_-_Get_Accounts": {
+                "inputs": {
+                    "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/entities/account"
+                },
+                "runAfter": {
+                    "Initialize_variable_2": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "For_each": {
+                "actions": {
+                    "Append_to_string_variable": {
+                        "inputs": {
+                            "name": "Account",
+                            "value": "@items('For_each')?['Name']"
+                        },
+                        "runAfter": {},
+                        "type": "AppendToStringVariable"
+                    }
+                },
+                "foreach": "@body('Entities_-_Get_Accounts')?['Accounts']",
+                "runAfter": {
+                    "Entities_-_Get_Accounts": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "For_each_2": {
+                "actions": {
+                    "Append_to_Table": {
+                        "inputs": {
+                            "name": "IPresults",
+                            "value": {
+                                "ASN": "@body('SpurContext')?['as']?['number']",
+                                "IP Location": "@variables('IPLocation')",
+                                "IPAddress": "@body('SpurContext')?['ip']",
+                                "Infrastructure": "@body('SpurContext')?['infrastructure']",
+                                "Organisation": "@body('SpurContext')?['as']?['organization']",
+                                "Proxies": "@variables('IPProxy')",
+                                "Risks": "@variables('IPRisks')",
+                                "Services": "@variables('IPServices')",
+                                "Tunnels": "@variables('IPTunnel')"
+                            }
+                        },
+                        "runAfter": {
+                            "For_each_6": [
+                                "Succeeded",
+                                "TimedOut",
+                                "Skipped",
+                                "Failed"
+                            ]
+                        },
+                        "type": "AppendToArrayVariable"
+                    },
+                    "Clear_IPProxy": {
+                        "inputs": {
+                            "name": "IPProxy",
+                            "value": " "
+                        },
+                        "runAfter": {
+                            "Append_to_Table": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    },
+                    "Clear_IPServices": {
+                        "inputs": {
+                            "name": "IPServices",
+                            "value": " "
+                        },
+                        "runAfter": {
+                            "Clear_IPTunnel": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    },
+                    "Clear_IPTunnel": {
+                        "inputs": {
+                            "name": "IPTunnel",
+                            "value": " "
+                        },
+                        "runAfter": {
+                            "Clear_IPProxy": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    },
+                    "For_each_3": {
+                        "actions": {
+                            "Set_variable": {
+                                "inputs": {
+                                    "name": "IPRisks",
+                                    "value": "@{items('For_each_3')}"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "foreach": "@body('SpurContext')?['risks']",
+                        "runAfter": {
+                            "Set_IPLocation": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Foreach"
+                    },
+                    "For_each_4": {
+                        "actions": {
+                            "Append_to_string_variable_2": {
+                                "inputs": {
+                                    "name": "IPProxy",
+                                    "value": "@{items('For_each_4')}\n"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToStringVariable"
+                            }
+                        },
+                        "foreach": "@body('SpurContext')?['client']?['proxies']",
+                        "runAfter": {
+                            "For_each_3": [
+                                "Succeeded",
+                                "TimedOut",
+                                "Skipped",
+                                "Failed"
+                            ]
+                        },
+                        "type": "Foreach"
+                    },
+                    "For_each_5": {
+                        "actions": {
+                            "Append_to_string_variable_3": {
+                                "inputs": {
+                                    "name": "IPTunnel",
+                                    "value": "@{items('For_each_5')?['operator']}\n"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToStringVariable"
+                            }
+                        },
+                        "foreach": "@body('SpurContext')?['tunnels']",
+                        "runAfter": {
+                            "For_each_4": [
+                                "Succeeded",
+                                "TimedOut",
+                                "Skipped",
+                                "Failed"
+                            ]
+                        },
+                        "type": "Foreach"
+                    },
+                    "For_each_6": {
+                        "actions": {
+                            "Append_to_string_variable_4": {
+                                "inputs": {
+                                    "name": "IPServices",
+                                    "value": "@{items('For_each_6')}\n"
+                                },
+                                "runAfter": {},
+                                "type": "AppendToStringVariable"
+                            }
+                        },
+                        "foreach": "@body('SpurContext')?['services']",
+                        "runAfter": {
+                            "For_each_5": [
+                                "Succeeded",
+                                "TimedOut",
+                                "Skipped",
+                                "Failed"
+                            ]
+                        },
+                        "type": "Foreach"
+                    },
+                    "Parse_IPLocation": {
+                        "inputs": {
+                            "content": "@body('SpurContext')?['location']",
+                            "schema": {
+                                "properties": {
+                                    "city": {
+                                        "type": "string"
+                                    },
+                                    "country": {
+                                        "type": "string"
+                                    },
+                                    "state": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "runAfter": {
+                            "SpurContext": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ParseJson"
+                    },
+                    "Parse_JSON": {
+                        "inputs": {
+                            "content": "@string(items('For_each_2'))",
+                            "schema": {
+                                "properties": {
+                                    "IPAddress": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "runAfter": {},
+                        "type": "ParseJson"
+                    },
+                    "Set_IPLocation": {
+                        "inputs": {
+                            "name": "IPLocation",
+                            "value": "@{body('Parse_IPLocation')?['city']}-@{body('Parse_IPLocation')?['state']}-@{body('Parse_IPLocation')?['country']}"
+                        },
+                        "runAfter": {
+                            "Parse_IPLocation": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    },
+                    "SpurContext": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['Spur-CustomConnector']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/v2/context/@{encodeURIComponent(body('Parse_JSON')?['IPAddress'])}"
+                        },
+                        "runAfter": {
+                            "Parse_JSON": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    }
+                },
+                "foreach": "@body('Run_query_and_list_results')?['value']",
+                "runAfter": {
+                    "Run_query_and_list_results": [
+                        "Succeeded"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "concurrency": {
+                        "repetitions": 1
+                    }
+                },
+                "type": "Foreach"
+            },
+            "IPLocation": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IPLocation",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "IPresults": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "IPProxy": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IPProxy",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "IPLocation": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "IPRisks": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IPRisks",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "IPProxy": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "IPServices": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IPServices",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "IPTunnel": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "IPTunnel": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IPTunnel",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "IPRisks": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "IPresults": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IPresults",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "IPtoString": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "IPtoString": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "IPtoString",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "API_Variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SpurResult",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "IPServices": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_variable_2": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Count",
+                            "type": "integer"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Account_Variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Run_query_and_list_results": {
+                "inputs": {
+                    "body": "union SigninLogs, AADNonInteractiveUserSignInLogs\n| where UserPrincipalName contains \"@{variables('Account')}\"\n| where IPAddress !contains \"{internal IP}\"\n| summarize by IPAddress\n| take 15",
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuremonitorlogs_2']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/queryData",
+                    "queries": {
+                        "resourcegroups": "AzureSentinel",
+                        "resourcename": "{resource name}",
+                        "resourcetype": "Log Analytics Workspace",
+                        "subscriptions": "{subscriptionID}",
+                        "timerange": "Last 7 days"
+                    }
+                },
+                "runAfter": {
+                    "Condition": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            },
+            "APIKey": {
+                "defaultValue": "{API Key}",
+                "type": "String"
+            }
+        },
+        "triggers": {
+            "Microsoft_Sentinel_incident": {
+                "inputs": {
+                    "body": {
+                        "callback_url": "@{listCallbackUrl()}"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                        }
+                    },
+                    "path": "/incident-creation"
+                },
+                "type": "ApiConnectionWebhook"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "Spur-CustomConnector": {
+                    "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/{connector}",
+                    "connectionName": "{connector}",
+                    "id": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/customApis/{connector}"
+                },
+                "azuremonitorlogs_2": {
+                    "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/azuremonitorlogs-4",
+                    "connectionName": "{connection name}",
+                    "connectionProperties": {
+                        "authentication": {
+                            "type": "ManagedServiceIdentity"
+                        }
+                    },
+                    "id": "/subscriptions/{subscriptionID}/providers/Microsoft.Web/locations/australiaeast/managedApis/azuremonitorlogs"
+                },
+                "azuresentinel": {
+                    "connectionId": "/subscriptions/{subscriptionID}/resourceGroups/AzureSentinel/providers/Microsoft.Web/connections/{connector}",
+                    "connectionName": "{connector}",
+                    "connectionProperties": {
+                        "authentication": {
+                            "type": "ManagedServiceIdentity"
+                        }
+                    },
+                    "id": "/subscriptions/{subscriptionID}/providers/Microsoft.Web/locations/{location}/managedApis/azuresentinel"
+                }
+            }
+        }
+    }
+}
