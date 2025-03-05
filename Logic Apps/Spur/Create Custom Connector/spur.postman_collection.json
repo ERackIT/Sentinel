@@ -24,7 +24,7 @@
 					"mode": "raw",
 					"raw": "{\n    \"url\": \"https://www.microsoft.com\",\n    \"visibility\": \"public\",\n    \"tags\": [\"sjmtest\"]\n}"
 				},
-				"url": "https://api.spur.us/v2/context/178.238.10.179"
+				"url": "https://api.spur.us/v2/context/"
 			},
 			"response": []
 		}
