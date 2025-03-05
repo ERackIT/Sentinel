@@ -23,8 +23,9 @@ As of February 2025, there is no Spur connector in Azure Logic Apps, so creating
 5. In the Create Logic Apps Custom Connector dialog, review the details you've entered, and then select Create.
 
 ### Setup Custom Connector from scratch
-1. In the resouce you have created, select **Overview**
-2. In the top bar, select **Edit**  
+
+1. In the resouce you have created, select **Overview**.
+2. In the top bar, select **Edit**.  
 3. Under **General information**  
    i. *Upload a connector icon for Spur.*  
    ii. **Host**: 'api.spur.us'  
@@ -37,9 +38,9 @@ As of February 2025, there is no Spur connector in Azure Logic Apps, so creating
 6. At the bottom right, select **Definition**. This page is where you create the actions that will be available in the Logic App.
 7. Under **General**  
    i. **Summary:** 'GET IP Context'  
-   ii. Description: 'Retrieves an IP Context Object by IPv4 or IPv6 Address. An IP Context Object summarizes all available information about the queried IP Address.'  
-   iii. Operation ID: 'GetIPContext'  
-   iv. Visibility: 'none'  
+   ii. **Description:** 'Retrieves an IP Context Object by IPv4 or IPv6 Address. An IP Context Object summarizes all available information about the queried IP Address.'  
+   iii. **Operation ID:** 'GetIPContext'  
+   iv. **Visibility:** 'none'  
 8. Under **Request**, Select *'Import from sample'*.  
     i. **Verb:** 'GET'
     ii. **URL:** 'https://api.spur.us/v2/context/'
@@ -48,18 +49,18 @@ As of February 2025, there is no Spur connector in Azure Logic Apps, so creating
 10. Under **Response**, Select *Add default response*.
     i. **Headers:** 'Content-Type application/json'
     ii. **Body:** *copy and paste .json from [IP Context Object Example.json](https://github.com/ERackIT/Sentinel/blob/main/Logic%20Apps/Spur/Create%20Custom%20Connector/IP%20Context%20Object%20Example.json)
-11. Select **Import**
+11. Select **Import**.
 12. At the top of the page, select **Update Connector**.
 
 ### Setup Custom Connector using Postman 
 1. Navigate to [Sentinel/Logic Apps/Spur/spur.postman_collection.json](https://github.com/ERackIT/Sentinel/blob/main/Logic%20Apps/Spur/Create%20Custom%20Connector/spur.postman_collection.json)
 2. Copy json and paste in a Notepad file on your desktop.
-3. Replace *{{API Key}}* with your API Key
-4. Save file as *'spur.postman_collection.json'*
-5. In the resouce you have created, select **Overview**
-6. In the top bar, select **Edit**  
-7. In the resouce you have created, select **Overview**
-8. In the top bar, select **Edit**
+3. Replace *{{API Key}}* with your API Key.
+4. Save file as *'spur.postman_collection.json'*.
+5. In the resouce you have created, select **Overview**.
+6. In the top bar, select **Edit**.  
+7. In the resouce you have created, select **Overview**.
+8. In the top bar, select **Edit**.
 9. Under **General information**  
    i. *Upload a connector icon for Spur.*  
    ii. **Host**: 'api.spur.us'  
@@ -73,7 +74,7 @@ As of February 2025, there is no Spur connector in Azure Logic Apps, so creating
 13. Under **Response**, Select *Add default response*.
     i. **Headers:** 'Content-Type application/json'
     ii. **Body:** *copy and paste .json from [IP Context Object Example.json](https://github.com/ERackIT/Sentinel/blob/main/Logic%20Apps/Spur/Create%20Custom%20Connector/IP%20Context%20Object%20Example.json)
-14. Select **Import**
+14. Select **Import**.
 15. At the top of the page, select **Update Connector**.
 
 **Reference:** [Postman | MS Learn](https://learn.microsoft.com/en-us/connectors/custom-connectors/define-postman-collection)
