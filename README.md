@@ -7,5 +7,6 @@ You can feed just about anything into your Log Analytic Workspace, but using tho
 
 The current focus of this repository is on 3rd Party Data Sources and logic apps using Threat Intelligence to enrich incidents.
 
-If you are looking for more KQL queries, check out:
+If you are looking for more KQL queries, check out:  
 https://github.com/SlimKQL/Hunting-Queries-Detection-Rules
+https://github.com/reprise99/Sentinel-Queries  
