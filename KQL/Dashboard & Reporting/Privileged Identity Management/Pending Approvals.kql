@@ -22,7 +22,3 @@ AuditLogs
 ) on CorrelationId 
 //| where datetime_diff('minute',2ndTime,1stTime) < 5 and 2ndTime > 1stTime 
 | project Identity, Approver, PIMGroup 
-
- 
-
- 
