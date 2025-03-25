@@ -7,19 +7,6 @@ Logs can either be forwardding using HTTPS or Syslog into your Microsoft Sentine
 - Prisma Access license  
 - Access to an Azure Log Analytics
 
-## Syslog Log Forwarding Method
-[Set Up Syslog Log Forwarding to Microsoft Sentinel | Palo Alto](https://docs.paloaltonetworks.com/prisma-access/integration/microsoft-integrations-with-prisma-access/set-up-syslog-forwarding-to-microsoft-sentinel)
-  
-### Prerequisites
-
-### Instructions
-#### Part 1- Data Connector
-1. In your Microsoft Sentinel workspace, select Content hub from the left hand pane.
-2. Search and select **Palo Alto Networks Cortex Data Lake** and install it.
-3. Go to Data connectors and refresh the section to view the Palo Alto Networks Cortex Data Lake (CDL) data connector.
-4. 
-  
-#### Part 2- Configure Linux Syslog agent
 
 ## HTTPS Log Forwarding Method
 [Set Up HTTPS Log Forwarding to Microsoft Sentinel | Palo Alto](https://docs.paloaltonetworks.com/prisma-access/integration/microsoft-integrations-with-prisma-access/set-up-https-log-forwarding-to-microsoft-sentinel)
@@ -68,4 +55,46 @@ For more information [About Azure Key Vault | Microsoft Learn](https://learn.mic
 | Workspace ID | *insert values from* **Part 2** |
 | Primary Key | *insert values from* **Part 2** |
 
-6. Select **Test Connection**.
+6. Select **Test Connection**.  
+7. Click Next, and add appropriate filters for the log types that you forward to Microsoft Sentinel.  
+
+|  | Configure HTTPS Forwarding Profile | 
+| --- | --- | 
+| Payload Format | Array JSON |
+| Status Notification | *leave blank* |
+| Profile Token | *leave blank* |  
+  
+**Filters**
+| Log Source | Log Type | Filter | 
+| --- | --- | --- |
+| Firewall Logs | url | All Logs |
+| Firewall Logs | globalprotect | All Logs |
+| Firewall Logs | traffic | All Logs |
+  
+8.  Save the changes. The status of the HTTPS profile takes some time to change from **Provisioning** to **Running**.
+
+### Part 4- Verify Logs are forwarded to Log Analytics
+1. Navigate to Log Analytics workspace.
+2. Select Logs and verify logs under table 'traffic_CL'
+3. Done.
+
+## Next Steps
+Create and implement alerting for Palo Alto logging. 
+[Cloud NGFW for Azure and Sentinel Integration | Palo Alto](https://live.paloaltonetworks.com/t5/cloud-ngfw-for-azure-articles/cloud-ngfw-for-azure-and-sentinel-integration/ta-p/1221654)
+
+  
+  
+## Syslog Log Forwarding Method
+[Set Up Syslog Log Forwarding to Microsoft Sentinel | Palo Alto](https://docs.paloaltonetworks.com/prisma-access/integration/microsoft-integrations-with-prisma-access/set-up-syslog-forwarding-to-microsoft-sentinel)
+  
+### Prerequisites
+
+### Instructions
+#### Part 1- Data Connector
+1. In your Microsoft Sentinel workspace, select Content hub from the left hand pane.
+2. Search and select **Palo Alto Networks Cortex Data Lake** and install it.
+3. Go to Data connectors and refresh the section to view the Palo Alto Networks Cortex Data Lake (CDL) data connector.
+4. 
+  
+#### Part 2- Configure Linux Syslog agent
+
