@@ -1,4 +1,4 @@
-#For seeing who added a user to a group#
+// For seeing who added a user to a group
 
 AuditLogs  
 | where Category contains "GroupManagement" 
@@ -10,7 +10,7 @@ AuditLogs
 | where TargetResources contains "groupname" 
 | project TimeGenerated, InitiatedBy, UserAdded
 
-OR
+// OR
 
 AuditLogs 
 | where ActivityDisplayName == "Add member to group" 
