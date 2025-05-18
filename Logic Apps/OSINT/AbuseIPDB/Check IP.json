@@ -1,0 +1,198 @@
+{
+    "definition": {
+        "$schema": "XXX",
+        "actions": {
+            "Add_comment_to_incident_(V3)": {
+                "inputs": {
+                    "body": {
+                        "incidentArmId": "@triggerBody()?['object']?['id']",
+                        "message": "<p><span style=\"font-size: 14px\"><strong></strong></span><span style=\"font-size: 14px\"><strong>@{outputs('Get_Logo')}</strong></span><span style=\"font-size: 14px\"><strong><br>\nAbuseIPDB IP Checking Results:</strong></span><br>\n@{outputs('Compose')}</p>"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['ConnectionName']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/Incidents/Comment"
+                },
+                "runAfter": {
+                    "Compose": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            },
+            "Check_each_IP_in_AbuseIPDB": {
+                "actions": {
+                    "Append_Result_to_Result_List": {
+                        "inputs": {
+                            "name": "Result List",
+                            "value": {
+                                "AbuseConfidenceScore": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['abuseConfidenceScore']",
+                                "Hostnames": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['hostnames']",
+                                "IPAddress": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['ipAddress']",
+                                "IPVersion": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['ipVersion']",
+                                "ISP": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['isp']",
+                                "isPublic": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['isPublic']",
+                                "isWhitelisted": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['isWhitelisted']",
+                                "lastReportedAt": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['lastReportedAt']",
+                                "numDistinctUsers": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['numDistinctUsers']",
+                                "totalReports": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['totalReports']",
+                                "usageType": "@body('AuseIPDB_CHECK_Endpoint')?['data']?['usageType']"
+                            }
+                        },
+                        "runAfter": {
+                            "Delay": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "AppendToArrayVariable"
+                    },
+                    "AuseIPDB_CHECK_Endpoint": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['AbuseIPDBAPI']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/check",
+                            "queries": {
+                                "ipAddress": "@items('Check_each_IP_in_AbuseIPDB')?['Address']"
+                            }
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                    },
+                    "Delay": {
+                        "inputs": {
+                            "interval": {
+                                "count": 20,
+                                "unit": "Second"
+                            }
+                        },
+                        "runAfter": {
+                            "AuseIPDB_CHECK_Endpoint": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Wait"
+                    }
+                },
+                "foreach": "@body('Entities_-_Get_IPs')?['IPs']",
+                "runAfter": {
+                    "Initialize_Results_List": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "Compose": {
+                "inputs": "@body('Create_HTML_table_with_Results')",
+                "runAfter": {
+                    "Create_HTML_table_with_Results": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Compose"
+            },
+            "Create_HTML_table_with_Results": {
+                "inputs": {
+                    "format": "HTML",
+                    "from": "@variables('Result List')"
+                },
+                "runAfter": {
+                    "Check_each_IP_in_AbuseIPDB": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Table"
+            },
+            "Entities_-_Get_IPs": {
+                "inputs": {
+                    "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/entities/ip"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+            },
+            "Get_Logo": {
+                "inputs": "<img src=\"https://www.abuseipdb.com/img/abuseipdb.png.pagespeed.ce.CI8T6WsXU7.png\"  width=\"152\" height=\"32\"> ",
+                "runAfter": {
+                    "Entities_-_Get_IPs": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Compose"
+            },
+            "Initialize_Results_List": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Result List",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Get_Logo": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "Microsoft_Sentinel_incident": {
+                "inputs": {
+                    "body": {
+                        "callback_url": "@{listCallbackUrl()}"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                        }
+                    },
+                    "path": "/incident-creation"
+                },
+                "type": "ApiConnectionWebhook"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "XX": {
+                    "connectionId": "XXX",
+                    "connectionName": "XXX",
+                    "id": "XXX"
+                },
+                "azuresentinel_1": {
+                    "connectionId": "XXX",
+                    "connectionName": "XXX",
+                    "connectionProperties": {
+                        "authentication": {
+                            "identity": "XXX",
+                            "type": "XXX"
+                        }
+                    },
+                    "id": "XXX"
+                }
+            }
+        }
+    }
+}
