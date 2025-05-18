@@ -2,120 +2,21 @@
     "definition": {
         "$schema": "XXX",
         "actions": {
-            "Compose": {
-                "inputs": "@body('Create_HTML_table')",
-                "runAfter": {
-                    "Create_HTML_table": [
-                        "Succeeded"
-                    ]
-                },
-                "type": "Compose"
-            },
-            "Condition": {
-                "actions": {
-                    "Add_comment_to_incident_(V3)": {
-                        "inputs": {
-                            "body": {
-                                "incidentArmId": "@triggerBody()?['object']?['id']",
-                                "message": "<p>@{outputs('Compose')}<br>\n@{variables('VariableString')}</p>"
-                            },
-                            "host": {
-                                "connection": {
-                                    "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
-                                }
-                            },
-                            "method": "post",
-                            "path": "/Incidents/Comment"
-                        },
-                        "runAfter": {},
-                        "type": "ApiConnection"
-                    }
-                },
-                "expression": {
-                    "and": [
-                        {
-                            "not": {
-                                "equals": [
-                                    "@variables('VariableString')",
-                                    ""
-                                ]
-                            }
-                        }
-                    ]
-                },
-                "runAfter": {
-                    "Compose": [
-                        "Succeeded"
-                    ]
-                },
-                "type": "If"
-            },
-            "Create_HTML_table": {
-                "inputs": {
-                    "format": "HTML",
-                    "from": "@variables('Table')"
-                },
-                "runAfter": {
-                    "For_each": [
-                        "Succeeded"
-                    ]
-                },
-                "type": "Table"
-            },
-            "Entities_-_Get_URLs": {
-                "inputs": {
-                    "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
-                    "host": {
-                        "connection": {
-                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
-                        }
-                    },
-                    "method": "post",
-                    "path": "/entities/url"
-                },
-                "runAfter": {},
-                "type": "ApiConnection"
-            },
             "For_each": {
+                "type": "Foreach",
+                "foreach": "@body('Entities_-_Get_URLs')?['URLs']",
                 "actions": {
-                    "Analyse_an_URL": {
-                        "inputs": {
-                            "body": {
-                                "$content-type": "multipart/form-data",
-                                "$multipart": [
-                                    {
-                                        "body": "@body('Parse_JSON')?['url']",
-                                        "headers": {
-                                            "Content-Disposition": "form-data; name=\"url\""
-                                        }
-                                    }
-                                ]
-                            },
-                            "host": {
-                                "connection": {
-                                    "name": "@parameters('$connections')['virustotal_1']['connectionId']"
-                                }
-                            },
-                            "method": "post",
-                            "path": "/api/v3/urls"
-                        },
-                        "runAfter": {
-                            "Parse_JSON": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "ApiConnection"
-                    },
-                    "Append_to_array_variable": {
+                    "Append_to_array_Table_variable": {
+                        "type": "AppendToArrayVariable",
                         "inputs": {
                             "name": "Table",
                             "value": {
-                                "Harmless": "@body('Get_Domain_report')?['data']?['attributes']?['last_analysis_stats']?['harmless']",
-                                "Malicious": "@body('Get_Domain_report')?['data']?['attributes']?['last_analysis_stats']?['malicious']",
-                                "Reputation": "@body('Get_Domain_report')?['data']?['attributes']?['reputation']",
-                                "Status": "@body('Retrieve_information_about_a_file_or_URL_analysis')['data']['attributes']['status']",
-                                "Suspicious": "@body('Get_Domain_report')?['data']?['attributes']?['last_analysis_stats']?['suspicious']",
-                                "URL": "@body('Parse_JSON')?['url']",
+                                "URL": "@{body('Parse_JSON')?['url']}",
+                                "URL Harmless Statistics": "@body('Retrieve_information_about_a_file_or_URL_analysis')?['data']?['attributes']?['stats']?['harmless']",
+                                "URL Suspicious Statistics": "@body('Retrieve_information_about_a_file_or_URL_analysis')?['data']?['attributes']?['stats']?['suspicious']",
+                                "URL Malicious Statistics": "@body('Retrieve_information_about_a_file_or_URL_analysis')?['data']?['attributes']?['stats']?['malicious']",
+                                "Domain Reputation": "@body('Get_Domain_report')?['data']?['attributes']?['reputation']",
+                                "Status": "@body('Retrieve_information_about_a_file_or_URL_analysis')?['data']?['attributes']?['status']",
                                 "Undetected": "@body('Get_Domain_report')?['data']?['attributes']?['last_analysis_stats']?['undetected']"
                             }
                         },
@@ -123,39 +24,22 @@
                             "Get_Domain_report": [
                                 "Succeeded"
                             ]
-                        },
-                        "type": "AppendToArrayVariable"
+                        }
                     },
                     "Append_to_string_variable": {
+                        "type": "AppendToStringVariable",
                         "inputs": {
                             "name": "VariableString",
-                            "value": "\nURL Report for: @{body('Parse_JSON')?['url']}\nDomain: @{body('Get_Domain_report')?['data']?['attributes']?['categories']}\nWHOIS: \n@{body('Get_Domain_report')?['data']?['attributes']?['whois_date']}\n@{body('Get_Domain_report')?['data']?['attributes']?['whois']}\n"
+                            "value": "\nURL Report for: @{body('Parse_JSON')?['url']}\nDomain: @{body('Get_Domain_report')?['data']?['attributes']?['categories']}\nWHOIS: \n@{body('Get_Domain_report')?['data']?['attributes']?['whois_date']}\n@{body('Get_Domain_report')?['data']?['attributes']?['whois']}\n\n\n"
                         },
                         "runAfter": {
-                            "Append_to_array_variable": [
+                            "Append_to_array_Table_variable": [
                                 "Succeeded"
                             ]
-                        },
-                        "type": "AppendToStringVariable"
-                    },
-                    "Get_Domain_report": {
-                        "inputs": {
-                            "host": {
-                                "connection": {
-                                    "name": "@parameters('$connections')['virustotal_1']['connectionId']"
-                                }
-                            },
-                            "method": "get",
-                            "path": "/api/v3/domains/@{encodeURIComponent(body('Parse_JSON')?['url'])}"
-                        },
-                        "runAfter": {
-                            "Retrieve_information_about_a_file_or_URL_analysis": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "ApiConnection"
+                        }
                     },
                     "Parse_JSON": {
+                        "type": "ParseJson",
                         "inputs": {
                             "content": "@items('For_each')",
                             "schema": {
@@ -169,37 +53,121 @@
                                 },
                                 "type": "object"
                             }
-                        },
-                        "runAfter": {},
-                        "type": "ParseJson"
+                        }
                     },
-                    "Retrieve_information_about_a_file_or_URL_analysis": {
+                    "Analyze_a_URL": {
+                        "type": "ApiConnection",
                         "inputs": {
                             "host": {
                                 "connection": {
-                                    "name": "@parameters('$connections')['virustotal_1']['connectionId']"
+                                    "name": "@parameters('$connections')['virustotal']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "path": "/api/v3/urls",
+                            "body": {
+                                "$content-type": "multipart/form-data",
+                                "$multipart": [
+                                    {
+                                        "headers": {
+                                            "Content-Disposition": "form-data; name=\"url\""
+                                        },
+                                        "body": "@body('Parse_JSON')?['url']"
+                                    }
+                                ]
+                            }
+                        },
+                        "runAfter": {
+                            "Parse_JSON": [
+                                "Succeeded"
+                            ]
+                        }
+                    },
+                    "Retrieve_information_about_a_file_or_URL_analysis": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['virustotal']['connectionId']"
                                 }
                             },
                             "method": "get",
-                            "path": "/api/v3/analyses/@{encodeURIComponent(body('Analyse_an_URL')?['data']?['id'])}"
+                            "path": "/api/v3/analyses/connectorV2/@{encodeURIComponent(body('Analyze_a_URL')?['data']?['id'])}"
                         },
                         "runAfter": {
-                            "Analyse_an_URL": [
+                            "Analyze_a_URL": [
                                 "Succeeded"
                             ]
+                        }
+                    },
+                    "Get_Domain_report": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['virustotal']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/api/v3/domains/@{encodeURIComponent(body('Parse_JSON')?['url'])}"
                         },
-                        "type": "ApiConnection"
+                        "runAfter": {
+                            "Retrieve_information_about_a_file_or_URL_analysis": [
+                                "Succeeded"
+                            ]
+                        }
+                    },
+                    "Create_HTML_table": {
+                        "type": "Table",
+                        "inputs": {
+                            "from": "@variables('Table')",
+                            "format": "HTML"
+                        },
+                        "runAfter": {
+                            "Append_to_string_variable": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Compose": {
+                        "type": "Compose",
+                        "inputs": "@body('Create_HTML_table')",
+                        "runAfter": {
+                            "Create_HTML_table": [
+                                "SUCCEEDED"
+                            ]
+                        }
+                    },
+                    "Add_comment_to_incident_(V3)": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['azuresentinel-1']['connectionId']"
+                                }
+                            },
+                            "method": "post",
+                            "body": {
+                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                "message": "<p class=\"editor-paragraph\">@{body('Create_HTML_table')}</p><br><p class=\"editor-paragraph\">@{variables('VariableString')}</p>"
+                            },
+                            "path": "/Incidents/Comment"
+                        },
+                        "runAfter": {
+                            "Compose": [
+                                "SUCCEEDED"
+                            ]
+                        }
                     }
                 },
-                "foreach": "@body('Entities_-_Get_URLs')?['URLs']",
                 "runAfter": {
-                    "Initialize_variable_2": [
+                    "Initialise_Domain_String_Variable": [
                         "Succeeded"
                     ]
-                },
-                "type": "Foreach"
+                }
             },
-            "Initialize_variable": {
+            "Initialise_Table": {
+                "type": "InitializeVariable",
                 "inputs": {
                     "variables": [
                         {
@@ -210,12 +178,12 @@
                 },
                 "runAfter": {
                     "Entities_-_Get_URLs": [
-                        "Succeeded"
+                        "SUCCEEDED"
                     ]
-                },
-                "type": "InitializeVariable"
+                }
             },
-            "Initialize_variable_2": {
+            "Initialise_Domain_String_Variable": {
+                "type": "InitializeVariable",
                 "inputs": {
                     "variables": [
                         {
@@ -225,35 +193,31 @@
                     ]
                 },
                 "runAfter": {
-                    "Initialize_variable": [
+                    "Initialise_Table": [
                         "Succeeded"
                     ]
+                }
+            },
+            "Entities_-_Get_URLs": {
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                    "path": "/entities/url"
                 },
-                "type": "InitializeVariable"
+                "runAfter": {}
             }
         },
-        "contentVersion": "1.0.0.0",
         "outputs": {},
         "parameters": {
             "$connections": {
-                "defaultValue": {},
-                "type": "Object"
-            }
-        },
-        "triggers": {
-            "Microsoft_Sentinel_incident": {
-                "inputs": {
-                    "body": {
-                        "callback_url": "@{listCallbackUrl()}"
-                    },
-                    "host": {
-                        "connection": {
-                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
-                        }
-                    },
-                    "path": "/incident-creation"
-                },
-                "type": "ApiConnectionWebhook"
+                "type": "Object",
+                "defaultValue": {}
             }
         }
     },
