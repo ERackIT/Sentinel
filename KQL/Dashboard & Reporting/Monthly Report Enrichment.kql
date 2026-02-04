@@ -1,0 +1,39 @@
+/ Report enrichment
+// ---------- Parameters ----------
+let tz = 'Australia/Canberra';
+let now_local = datetime_utc_to_local(now(), tz);
+let start_local = startofmonth(datetime_add('month', -1, now_local));
+let end_local   = endofmonth(datetime_add('month', -1, now_local));
+// let start_local = startofmonth(datetime_add('month', -0, now_local));
+// let end_local   = endofmonth(datetime_add('month', -0, now_local));
+let to_local = (ts: datetime) { datetime_utc_to_local(ts, tz) };
+// ---------- Report Enrichment ----------
+SecurityIncident
+   // --- De-dupe to the latest record per incident like your arg_max
+   | summarize arg_max(TimeGenerated, *) by IncidentNumber
+   // --- Filter on only Closed Incidents
+   | where Status == 'Closed'
+   // --- Convert to local once and reuse
+   | extend CreatedTimeLocal = datetime_utc_to_local(CreatedTime, tz)
+   // -- set reporting time range --
+   | where CreatedTimeLocal >= start_local and CreatedTimeLocal <= end_local
+   | extend CreatedDayLocal = startofday(CreatedTimeLocal)
+   // Alert product extraction (fallback to ProviderName)
+   | extend AlertProvider = tostring(parse_json(tostring(AdditionalData.alertProductNames))[0])
+   // Reporting Exclusions
+   | where ModifiedBy != "Automation rule - Automatically close Microsoft Defender for Cloud App Incidents"  //remove MCAS autoclosed alerts 
+   | where Severity != 'Informational'
+   | extend Title = iff(
+                     Title has "Purview IRM ('",
+                     replace_regex(Title, @"^.*?\)\s*", "Purview IRM - "),
+                     Title
+                 )
+    | extend AnalyticRule = 
+    iif(Title has "Anomalous sign-in location", "Anomalous sign-in location",
+    iif(Title has "A network session Source address", "A Network Session Source address matched an IOC",
+    iif(Title has "Account Added and Removed from Admin Group", "Account Added and Removed from Admin Group",
+    iif(Title has "Suspicious Permissions Granted involving one user", "Suspicious Permissions Granted involving one user",
+    Title))))))
+    | extend Date = format_datetime(CreatedDayLocal, 'dd/MM/yy')
+    | summarize  DailyCount=count() by Date, AnalyticRule, AlertProvider , Severity, Classification
+    | sort by Date asc
