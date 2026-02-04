@@ -1,0 +1,8 @@
+let selectedTimestamp = datetime(''); //eg datetime('2025-12-05T03:29:57.845Z')
+let DeviceIdentifier = ""
+union DeviceProcessEvents,DeviceNetworkEvents,DeviceFileEvents,DeviceRegistryEvents,DeviceLogonEvents,DeviceImageLoadEvents,DeviceEvents
+| where TimeGenerated between ((selectedTimestamp - 15m) .. (selectedTimestamp + 15m)) //adjust accordingly
+and DeviceId == DeviceIdentifier
+| sort by TimeGenerated desc
+| extend Relevance = iff(TimeGenerated == selectedTimestamp, "Selected event", iff(TimeGenerated < selectedTimestamp, "Earlier event", "Later event"))
+| project-reorder Relevance
