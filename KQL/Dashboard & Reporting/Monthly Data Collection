@@ -1,0 +1,81 @@
+// ---------- Parameters ----------
+let tz = 'Australia/Canberra';
+let now_local = datetime_utc_to_local(now(), tz);
+let start_local = startofmonth(datetime_add('month', -1, now_local));
+let end_local   = endofmonth(datetime_add('month', -1, now_local));
+let to_local = (ts:datetime) { datetime_utc_to_local(ts, tz) };
+//   ---------- Daily Event Count ----------     
+let events_daily =
+    union *
+    // --- Convert to local once and reuse
+    | extend TimeGeneratedLocal = datetime_utc_to_local(TimeGenerated, tz)
+    | extend CreatedDayLocal = startofday(TimeGeneratedLocal)
+    // -- Set reporting time range --
+    | where CreatedDayLocal >= start_local and CreatedDayLocal <= end_local
+    | summarize TotalEvents = count() by CreatedDayLocal;
+// ---------- Incidents ----------
+let incidents_daily =
+    SecurityIncident
+    // --- De-dupe to the latest record per incident like your arg_max
+    | summarize arg_max(TimeGenerated, *) by IncidentNumber
+    // --- Filter on only Closed Incidents
+    | where Status == 'Closed'
+    // --- Convert to local once and reuse
+    | extend CreatedTimeLocal = datetime_utc_to_local(CreatedTime, tz)
+    // -- set reporting time range --
+    | where CreatedTimeLocal >= start_local and CreatedTimeLocal <= end_local
+    | extend CreatedDayLocal = startofday(CreatedTimeLocal)
+    // Alert product extraction (fallback to ProviderName)
+    | extend AlertProvider = tostring(parse_json(tostring(AdditionalData.alertProductNames))[0])
+    | extend AlertProduct = coalesce(AlertProvider, ProviderName)
+	// Reporting Exclusions
+    | where ModifiedBy != "Automation rule - Automatically close Microsoft Defender for Cloud App Incidents"  //remove MCAS autoclosed alerts 
+    | where Severity != 'Informational'
+    | summarize 
+        //Volumes by Severity
+        TotalAlerts = count(),
+        HighAlerts  = countif(Severity == 'High'),
+        MediumAlerts= countif(Severity == 'Medium'),
+        LowAlerts   = countif(Severity == 'Low'),
+        // Volumes by Classification
+        BenignPositive = countif(Classification == 'BenignPositive'),
+        TruePositive   = countif(Classification == 'TruePositive'),
+        FalsePositive  = countif(Classification == 'FalsePositive'),
+        Undetermined   = countif(Classification == 'Undetermined'),
+        // Volumes by Product
+        Sentinel                           = countif(AlertProduct == "Azure Sentinel"), 
+        MicrosoftCloudAppSecurity          = countif(AlertProduct == "Microsoft Cloud App Security"),
+        Office365AdvancedThreatProtection  = countif(AlertProduct == "Office 365 Advanced Threat Protection" or AlertProduct == "Azure Advanced Threat Protection" or AlertProduct == "Microsoft Defender Advanced Threat Protection"), 
+        MicrosoftDLP                       = countif(AlertProduct == "Microsoft Data Loss Prevention"),
+        Microsoft365InsiderRiskManagment   = countif(AlertProduct == "Microsoft 365 Insider Risk Management"),
+        MicrosoftXDR                       = countif(AlertProduct == "Microsoft XDR" or AlertProduct == "Microsoft 365 Defender"), 
+        AzureSecurityCentre                = countif(AlertProduct == "Azure Security Center" ) 
+      by CreatedDayLocal;
+// A calendar scaffold to guarantee one row per day in the prior month (local time)      
+let days =
+    range d from start_local to end_local step 1d
+    | project CreatedDayLocal = startofday(d);      
+// ---------- Final Output ----------
+days
+| join kind=leftouter incidents_daily on CreatedDayLocal
+| join kind=leftouter events_daily   on CreatedDayLocal
+| project
+    AmericanDateFormat     = format_datetime(CreatedDayLocal, 'MM/dd/yy'),
+    AustraliaDateFormat    = format_datetime(CreatedDayLocal, 'dd/MM/yy'),
+    TotalEventsMillions    = round(coalesce(TotalEvents, 0) / 1000000),
+    TotalAlerts            = coalesce(TotalAlerts, 0),
+    HighAlerts             = coalesce(HighAlerts, 0),
+    MediumAlerts           = coalesce(MediumAlerts, 0),
+    LowAlerts              = coalesce(LowAlerts, 0),
+    BenignPositive         = coalesce(BenignPositive, 0),
+    TruePositive           = coalesce(TruePositive, 0),
+    FalsePositive          = coalesce(FalsePositive, 0),
+    Undetermined           = coalesce(Undetermined, 0),
+    Sentinel               = coalesce(Sentinel, 0),
+    MicrosoftCloudAppSecurity         = coalesce(MicrosoftCloudAppSecurity, 0),
+    Office365AdvancedThreatProtection = coalesce(Office365AdvancedThreatProtection, 0),
+    MicrosoftDLP                      = coalesce(MicrosoftDLP, 0),
+    MicrosoftXDR                      = coalesce(MicrosoftXDR, 0),
+    Microsoft365InsiderRiskManagment  = coalesce(Microsoft365InsiderRiskManagment, 0),
+    AzureSecurityCentre  = coalesce(AzureSecurityCentre, 0)
+| sort by AustraliaDateFormat asc
