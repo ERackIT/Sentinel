@@ -1,0 +1,22 @@
+// ------Analytic Rule: Privileged User Logon from new ASN-----
+let WhiteListedIPs = dynamic([ 
+"10.1.1.1", // Location A
+"192.165.27.10.", // Location B
+"160.1.120.28" // Location C
+]); 
+let admins=(IdentityInfo
+    | where AssignedRoles contains "admin" or GroupMembership has "Admin"
+    | summarize by tolower(AccountUPN));
+let known_asns = (
+    SigninLogs
+    | where TimeGenerated between(ago(14d) .. ago(1d))
+    | where ResultType == 0
+    | summarize by AutonomousSystemNumber);
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == 0
+| where tolower(UserPrincipalName) in (admins)
+| where AutonomousSystemNumber !in (known_asns)
+| project-reorder TimeGenerated, UserPrincipalName, UserAgent, IPAddress, AutonomousSystemNumber
+| extend AccountCustomEntity = UserPrincipalName, IPCustomEntity = IPAddress
+| where IPAddress !in (WhiteListedIPs)
