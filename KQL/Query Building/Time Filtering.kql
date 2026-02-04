@@ -1,0 +1,29 @@
+//--------- Different Ways to filter by time-------
+// For last x days
+Table
+| where TimeGenerated between (ago(180d) .. now())
+
+//For Last full month. Eg, October 1-31th
+Table
+| where TimeGenerated >= startofmonth(datetime_add("month",-1,now()))
+| where TimeGenerated < startofmonth(now())
+
+//For second last full month. Eg, September 1-30th
+| where TimeGenerated >= startofmonth(datetime_add("month",-2,now()))
+| where TimeGenerated < startofmonth(datetime_add("month",-1,now()))
+
+//For Last three full months . Eg, August 1st to October 31st
+| where TimeGenerated >= startofmonth(datetime_add("month",-1,now()))
+| where TimeGenerated < startofmonth(now())
+
+// start of last month until now
+| where TimeGenerated >= startofmonth(datetime_add("month",-1,now()))
+| where TimeGenerated < now()
+
+//For +-Timestamp
+let selectedTimestamp = datetime(''); //eg 'datetime('2025-12-05T03:29:57.845Z')'
+Table
+| sort by TimeGenerated desc
+| where TimeGenerated between ((selectedTimestamp - 15m) .. (selectedTimestamp + 15m)) //adjust as needed
+| extend Relevance = iff(TimeGenerated == selectedTimestamp, "Selected event", iff(TimeGenerated < selectedTimestamp, "Earlier event", "Later event"))
+| project-reorder Relevance
