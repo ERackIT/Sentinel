@@ -1,0 +1,9 @@
+// --------Extend Arrays ----------
+//For when the array has spaces in the name
+| extend ClientIPAddress = parse_json(ExtendedProperties).["Client IP Address"]
+
+// for dynamic lists because they can't use tostring or tolower so extend that first
+| extend LowerRemoteUrl = tolower(tostring(RemoteUrl))
+
+// for arrays that don't name values
+| extend SourceIP = tostring(parse_json(SrcNatIpAddr)[1])
