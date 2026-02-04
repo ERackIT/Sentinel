@@ -1,0 +1,15 @@
+let fileName = ""; //eg 'setup.exe'
+let fileSha1 = "";
+let fileSha256 = "";
+search in (EmailAttachmentInfo,DeviceFileEvents,BehaviorEntities,CloudAppEvents)
+Timestamp between (ago(30d) .. now())
+and (FileName =~ fileName
+//or InitiatingProcessFileName =~ fileName
+//or ActivityObjects has fileName
+//or (ObjectType == 'File' and ObjectName == fileName)
+//or SHA1 == fileSha1
+//or InitiatingProcessSHA1 has fileSha1
+//or SHA256 == fileSha256
+//or InitiatingProcessSHA256 == fileSha256
+)
+| extend ReportId = coalesce(tostring(column_ifexists("ReportId", "")),column_ifexists("ReportId_string", ""),tostring(column_ifexists("ReportId_long","")))
