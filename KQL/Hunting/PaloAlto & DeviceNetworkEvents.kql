@@ -1,0 +1,45 @@
+// Searching PaloAlto & DeviceNetworkEvents for IOCs
+// ------ Search Parameters ------//
+let UserEmailAddress = "";                // add if known (e.g., 'john.smith@live.com')
+let OnPremId = "";                     // add if known (e.g., '9999')
+let UsersDeviceName = "";                 // add if known (e.g., 'r00990123456' - no need for 'corp.local')
+let DeviceLocalIP = "";                   // add if known
+let DestinationIPs = dynamic([""]);         // add multiple IPs if known, e.g., dynamic(["1.1.1.1","8.8.8.8"])
+let DestinationURLs = dynamic([""]); // add multiple if known
+//------ Search DeviceNetworkLogs ------//
+let DeviceNetworkLogs =
+DeviceNetworkEvents
+| where (isempty(UserEmailAddress) or tolower(InitiatingProcessAccountUpn) == tolower(UserEmailAddress))
+| where (isempty(OnPremId) or tolower(InitiatingProcessAccountName) == tolower(OnPremId))
+| where (isempty(UsersDeviceName) or DeviceName has UsersDeviceName)
+| where (isempty(DeviceLocalIP) or LocalIP == DeviceLocalIP)
+| where (isnull(DestinationIPs) or array_length(DestinationIPs) == 0 or array_index_of(DestinationIPs, RemoteIP) != -1)
+| extend LowerRemoteUrl = tolower(tostring(RemoteUrl))
+| where (isnull(DestinationURLs) or array_length(DestinationURLs) == 0 or LowerRemoteUrl has_any (DestinationURLs))
+| extend
+    UserEmailAddress  = tolower(InitiatingProcessAccountUpn),
+    OnPremId        = InitiatingProcessAccountName,
+    UsersDeviceName   = DeviceName,
+    DeviceLocalIP     = LocalIP,
+    DestinationIP     = RemoteIP,
+    DestinationURL    = RemoteUrl
+;
+//------ Search Palo Alto Network Logs ------//
+let PaloNetworkLogs =
+PaloAltoCDLEvent
+| where (isempty(UserEmailAddress) or tolower(SrcUsername) == tolower(UserEmailAddress))
+| extend SrcNatIpAddr_s = tostring(parse_json(SrcNatIpAddr)[1]),
+         DstNatIpAddr_s = tostring(parse_json(DstNatIpAddr)[1]),
+         Url_s          = tostring(Url)
+| where (isempty(DeviceLocalIP) or SrcNatIpAddr_s == DeviceLocalIP)
+| where (isnull(DestinationIPs) or array_length(DestinationIPs) == 0 or DstNatIpAddr_s has_any (DestinationIPs))
+| where (isnull(DestinationURLs) or array_length(DestinationURLs) == 0 or Url_s has_any (DestinationURLs))
+| extend
+    UserEmailAddress  = SrcUsername,
+    DeviceLocalIP     = SrcNatIpAddr_s,
+    DestinationIP     = DstNatIpAddr_s,
+    DestinationURL    = Url
+;
+union DeviceNetworkLogs, PaloNetworkLogs
+| project-reorder TimeGenerated, UserEmailAddress, UsersDeviceName, DeviceLocalIP, DestinationIP, DestinationURL, RemoteUrl
+| sort by TimeGenerated asc
