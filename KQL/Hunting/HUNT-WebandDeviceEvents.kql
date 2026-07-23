@@ -7,6 +7,26 @@ let SourceIPs = dynamic([""]);         // add if known
 let DestinationIPs = dynamic([""]);     // add multiple IPs if known, e.g., dynamic(["1.1.1.1","8.8.8.8"])
 let DestinationURLs = dynamic([""]); // add multiple if known
 let FileHash = dynamic([""]);
+//------ Search DeviceFileEvents ------//    
+let FileEvents = 
+//union 
+DeviceFileEvents
+//, DeviceEvents, DeviceProcessEvents
+| where TimeGenerated between ((selectedTimestamp - lookBack) .. (selectedTimestamp + lookForward))
+| extend LowerFileHashSHA265 = tolower(tostring(SHA256)),
+         LowerInitiatingFileHashSHA265 = tolower(tostring(InitiatingProcessSHA256)),
+		 LowerFileOriginUrl = tolower(tostring(FileOriginUrl))
+| where (isnull(FileHash) or array_length(FileHash) == 0 or LowerFileHashSHA265 has_any (FileHash) or LowerInitiatingFileHashSHA265 has_any (FileHash))
+| where (isnull(DestinationURLs) or array_length(DestinationURLs) == 0 or LowerFileOriginUrl has_any (DestinationURLs))
+//------ Format the FileOriginUrl so it's searchable in CommonSecurityLog ------//		  
+| parse LowerFileOriginUrl with * "://" ParsedLowerFileOriginUrl		 
+//| extend LowerFileOriginUrl = tolower(tostring(ParsedFileOriginUrl))		  
+;
+//------ Extract FileOriginUrl ------//
+let FileOriginUrls =
+FileEvents
+| where isnotempty(ParsedLowerFileOriginUrl)
+| summarize make_set(ParsedLowerFileOriginUrl);
 //------ Search DeviceNetworkLogs ------//
 let DeviceNetworkLogs =
 DeviceNetworkEvents
@@ -15,7 +35,8 @@ DeviceNetworkEvents
 | where (isempty(SourceIPs) or LocalIP has_any (SourceIPs))
 | where (isempty(DestinationIPs) or RemoteIP has_any (DestinationIPs)) 
 | extend LowerRemoteUrl = tolower(tostring(RemoteUrl))
-| where (isnull(DestinationURLs) or array_length(DestinationURLs) == 0 or LowerRemoteUrl has_any (DestinationURLs))
+| where (isnull(DestinationURLs) or array_length(DestinationURLs) == 0 or LowerRemoteUrl has_any (tolower(DestinationURLs)))
+| where (isnull(FileOriginUrls) or array_length(FileOriginUrls) == 0 or LowerRemoteUrl has_any (FileOriginUrls))
 | extend
     UserEmailAddress  = tolower(InitiatingProcessAccountUpn),
     OnPremCERId       = InitiatingProcessAccountName,
@@ -35,6 +56,7 @@ CommonSecurityLog
 | where (isempty(SourceIPs) or SourceIP has_any (SourceIPs))
 | where (isempty(DestinationIPs) or DestinationIP has_any (DestinationIPs))
 | where (isnull(DestinationURLs) or array_length(DestinationURLs) == 0 or Url_s has_any (DestinationURLs))
+| where (isnull(FileOriginUrls) or array_length(FileOriginUrls) == 0 or Url_s has_any (FileOriginUrls))
 | extend
     UserEmailAddress  = SourceUserName,
     DestinationIP     = DestinationIP,
@@ -44,21 +66,6 @@ CommonSecurityLog
     URLCategory       = DeviceCustomString2,
     TrafficDirection  = FlexString2
 ;
-//------ Search DeviceFileEvents ------//    
-let FileEvents = DeviceFileEvents
-| where TimeGenerated between ((selectedTimestamp - lookBack) .. (selectedTimestamp + lookForward))
-| extend LowerFileHashSHA265 = tolower(tostring(SHA256)),
-         LowerInitiatingFileHashSHA265 = tolower(tostring(InitiatingProcessSHA256))
-| where (isnull(FileHash) or array_length(FileHash) == 0 
-          or LowerFileHashSHA265 has_any (FileHash) 
-          or LowerInitiatingFileHashSHA265 has_any (FileHash))
-// | where ActionType == "FileCreated"
-// | parse FileOriginUrl with * "://" RequestURL
-;
-union 
-//DeviceNetworkLogs, 
-PaloNetworkLogs
-// , FileEvents
-// | project-reorder TimeGenerated, Type, DestinationURL, DestinationIP, DestinationPort,  PaloSecurityRule, URLCategory, TrafficDirection, UserEmailAddress, UsersDeviceName, SourceIP, SourcePort
+union DeviceNetworkLogs, PaloNetworkLogs, FileEvents
+| project-reorder TimeGenerated, Type, DestinationURL, DestinationIP, DestinationPort,  PaloSecurityRule, URLCategory, TrafficDirection, UserEmailAddress, UsersDeviceName, SourceIP, SourcePort, FileHash
 | sort by TimeGenerated asc
-| take 10
