@@ -1,0 +1,75 @@
+// ------ Search Parameters ------//
+let selectedTimestamp = now();
+let lookBack = 14d;
+let lookForward = 3h;
+let UserEmailAddress = "";
+let SourceIPs = dynamic([""]);
+let DestinationIPs = dynamic([""]);
+let FileHash = dynamic([
+    ""
+]);
+//------ Find File Events and Extract FileOriginUrl ------//
+let FileEvents =
+DeviceFileEvents
+| where TimeGenerated between ((selectedTimestamp - lookBack) .. (selectedTimestamp + lookForward))
+| extend
+    LowerFileHashSHA256 = tolower(tostring(SHA256)),
+    LowerInitiatingFileHashSHA256 = tolower(tostring(InitiatingProcessSHA256))
+| where LowerFileHashSHA256 has_any (FileHash)
+    or LowerInitiatingFileHashSHA256 has_any (FileHash)
+| extend LowerFileOriginUrl = tolower(tostring(FileOriginUrl));
+let FileOriginUrls =
+FileEvents
+| where isnotempty(LowerFileOriginUrl)
+| summarize make_set(LowerFileOriginUrl);
+//------ Search MDE Network Events for FileOriginUrl ------//
+let DeviceNetworkLogs =
+DeviceNetworkEvents
+| where TimeGenerated between ((selectedTimestamp - lookBack) .. (selectedTimestamp + lookForward))
+| where (isempty(UserEmailAddress) or tolower(InitiatingProcessAccountUpn) == tolower(UserEmailAddress))
+| where (isempty(SourceIPs) or LocalIP has_any (SourceIPs))
+| where (isempty(DestinationIPs) or RemoteIP has_any (DestinationIPs))
+| extend LowerRemoteUrl = tolower(tostring(RemoteUrl))
+| where LowerRemoteUrl has_any (toscalar(FileOriginUrls))
+| extend
+    UserEmailAddress = tolower(InitiatingProcessAccountUpn),
+    OnPremCERId = InitiatingProcessAccountName,
+    UsersDeviceName = DeviceName,
+    SourceIP = LocalIP,
+    SourcePort = LocalPort,
+    DestinationIP = RemoteIP,
+    DestinationPort = RemotePort,
+    DestinationURL = RemoteUrl;
+//------ Search Palo Alto Logs for FileOriginUrl ------//
+let PaloNetworkLogs =
+CommonSecurityLog
+| where TimeGenerated between ((selectedTimestamp - lookBack) .. (selectedTimestamp + lookForward))
+| where (isempty(UserEmailAddress) or tolower(SourceUserName) == tolower(UserEmailAddress))
+| where (isempty(SourceIPs) or SourceIP has_any (SourceIPs))
+| where (isempty(DestinationIPs) or DestinationIP has_any (DestinationIPs))
+| extend LowerRequestUrl = tolower(tostring(RequestURL))
+| where LowerRequestUrl has_any (toscalar(FileOriginUrls))
+| extend
+    UserEmailAddress = SourceUserName,
+    DestinationURL = RequestURL,
+    ActionType = Activity,
+    PaloSecurityRule = DeviceCustomString1,
+    URLCategory = DeviceCustomString2,
+    TrafficDirection = FlexString2;
+//------ Output ------//
+union DeviceNetworkLogs, PaloNetworkLogs, FileEvents
+| project-reorder
+    TimeGenerated,
+    Type,
+    FileOriginUrl,
+    DestinationURL,
+    DestinationIP,
+    DestinationPort,
+    PaloSecurityRule,
+    URLCategory,
+    TrafficDirection,
+    UserEmailAddress,
+    UsersDeviceName,
+    SourceIP,
+    SourcePort
+| sort by TimeGenerated asc
